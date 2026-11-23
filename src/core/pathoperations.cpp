@@ -84,7 +84,9 @@ void gSolidify(const qreal widthT,
     SkPath src2 = gPathToPolyline(src);
     SkPath outline;
     strokerSk.strokePath(src2, &outline);
-    Op(src2, outline, op, dst);
+    // Only closed contours have an interior to grow or shrink,
+    // open contours are just thickened.
+    Op(gClosedContours(src2), outline, op, dst);
     dst->setFillType(src.getFillType());
 
 //    SkOpBuilder builder;
