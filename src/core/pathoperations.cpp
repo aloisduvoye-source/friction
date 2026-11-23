@@ -29,6 +29,43 @@
 #include "exceptions.h"
 #include "pointhelpers.h"
 
+// Closed contours of path only: an open contour (e.g. a dash) has no
+// interior, filling it would close it with a straight chord.
+static SkPath gClosedContours(const SkPath& path) {
+    SkPath result;
+    result.setFillType(path.getFillType());
+    SkPath contour;
+    SkPath::Iter iter(path, false);
+    SkPoint pts[4];
+    for(;;) {
+        switch(iter.next(pts)) {
+        case SkPath::kMove_Verb:
+            contour.reset();
+            contour.moveTo(pts[0]);
+            break;
+        case SkPath::kLine_Verb:
+            contour.lineTo(pts[1]);
+            break;
+        case SkPath::kQuad_Verb:
+            contour.quadTo(pts[1], pts[2]);
+            break;
+        case SkPath::kConic_Verb:
+            contour.conicTo(pts[1], pts[2], iter.conicWeight());
+            break;
+        case SkPath::kCubic_Verb:
+            contour.cubicTo(pts[1], pts[2], pts[3]);
+            break;
+        case SkPath::kClose_Verb:
+            contour.close();
+            result.addPath(contour);
+            contour.reset();
+            break;
+        case SkPath::kDone_Verb:
+            return result;
+        }
+    }
+}
+
 void gSolidify(const qreal widthT,
                const SkPath &src,
                SkPath * const dst) {
